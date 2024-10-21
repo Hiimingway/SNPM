@@ -83,9 +83,9 @@ assert setting.batch_size < poi_loader.user_count(
 
 
 #model_pre=network_dgraph.DyGraph(poi_loader.locations(),poi_loader.user_count(),20,setting.hidden_dim).cuda()
-model_pre=network_dgraph.DyGraph(poi_loader.locations(),poi_loader.user_count(),20,setting.hidden_dim)
+model_pre=network_dgraph.DyGraph(poi_loader.locations(),poi_loader.user_count(),20,setting.hidden_dim, setting.device)
 #model_pre.load_state_dict(torch.load('ablation/dyn_network_concat_240.pth'))
-model_pre.cuda()
+model_pre.to(setting.device)
 #  training loop
 optimizer = torch.optim.Adam(model_pre.parameters(
 ), lr=0.002, weight_decay=setting.weight_decay)

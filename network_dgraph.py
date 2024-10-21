@@ -9,15 +9,16 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class DyGraph(nn.Module):
-    def __init__(self, input_size, user_count, hidden_size,hidden_dim):
+    def __init__(self, input_size, user_count, hidden_size,hidden_dim, device):
         super().__init__()
         self.input_size = input_size  # POI个数
         self.user_count = user_count
         self.hidden_size = 20
         self.hidden_dim=hidden_dim
+        self.device=device
         self.list_centroids=list(np.load("WORK/list_centroids.npy",allow_pickle=True))  #每个聚类中含有的元素(存的不是序号，是array)
         num_centroids=len(self.list_centroids)
-        self.vecs_use=torch.tensor(np.load("WORK/vecs_use.npy",allow_pickle=True),dtype=torch.float32).cuda()  #初始向量
+        self.vecs_use=torch.tensor(np.load("WORK/vecs_use.npy",allow_pickle=True),dtype=torch.float32).to(self.device)  #初始向量
         vecs_emblength=self.vecs_use.shape[1]
         self.I_array=np.load("WORK/I.npy",allow_pickle=True)  # 每个向量对应的聚类
         self.list_number=np.load("WORK/list_number.npy",allow_pickle=True)
@@ -101,16 +102,16 @@ class DyGraph(nn.Module):
         for i in range(x_emb_history.shape[0]):
             indexofcentroids[index_x_centroids[i]].append(i)
 
-        return_x_emb=torch.zeros((x_emb_history.shape[0],self.hidden_dim)).cuda()
+        return_x_emb=torch.zeros((x_emb_history.shape[0],self.hidden_dim)).to(self.device)
 
         for i,line in enumerate(indexofcentroids):
             # 如果聚类没有元素 直接跳过
             if len(line)!=0:
                 list_nei=self.list_number[i] # 位于这个聚类内的所有元素
-                candidate_number=torch.tensor(list_nei,dtype=int).cuda()
+                candidate_number=torch.tensor(list_nei,dtype=int).to(self.device)
                 now_self=x_view[line]
 
-                line_cuda=torch.tensor(np.array(line),dtype=int).cuda()
+                line_cuda=torch.tensor(np.array(line),dtype=int).to(self.device)
                 now_self_emb=x_emb_history_concat[line] # n x 10
                 neighbor_candidate_emb=torch.index_select(self.x_embedding_dy,0,candidate_number)  #neigh x 10
 
@@ -131,7 +132,7 @@ class DyGraph(nn.Module):
                 self_embedding=x_embedding_network[now_self].unsqueeze(1)
                 embedding_neigh=torch.concat((embedding_neigh,self_embedding),dim=1)
                 # values=torch.zeros(values.shape).cuda()
-                one_value=torch.tensor(np.array([1.]*len(line)).reshape(-1,1),dtype=torch.float32).cuda()
+                one_value=torch.tensor(np.array([1.]*len(line)).reshape(-1,1),dtype=torch.float32).to(self.device)
                 values=torch.concat((values,one_value),dim=-1)
 
                 score_new=torch.nn.functional.softmax(values,dim=-1)
@@ -240,9 +241,9 @@ class DyGraph(nn.Module):
                 neg_sample.append(np.array(neg_list))
 
 
-        pos_sample=torch.tensor(np.concatenate(pos_sample),dtype=int).cuda()
-        neg_sample=torch.tensor(np.concatenate(neg_sample),dtype=int).cuda()
-        self_sample=torch.tensor(np.concatenate(self_sample),dtype=int).cuda()
+        pos_sample=torch.tensor(np.concatenate(pos_sample),dtype=int).to(self.device)
+        neg_sample=torch.tensor(np.concatenate(neg_sample),dtype=int).to(self.device)
+        self_sample=torch.tensor(np.concatenate(self_sample),dtype=int).to(self.device)
 
 
         pos_output=torch.index_select(vec_output,0,pos_sample)
